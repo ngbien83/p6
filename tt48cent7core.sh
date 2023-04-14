@@ -16,10 +16,11 @@ eecho "Getting IPv4 ..."
 IP4=$(curl -4 -s icanhazip.com -m 10)
 
 eecho "Getting IPv6 ..."
-IP6=$(curl -6 -s icanhazip.com -m 10)
-if [[ $IP6 != *:* ]]; then
-  IP6=
-fi
+IP6=2602:fed2:7313::
+# IP6=$(curl -6 -s icanhazip.com -m 10)
+# if [[ $IP6 != *:* ]]; then
+  # IP6=
+# fi
 
 eecho "IPv4 = ${IP4}. IPv6 = ${IP6}"
 
@@ -79,6 +80,7 @@ gen_static() {
     sed -i '/^IPV6ADDR_SECONDARIES/d' $NETWORK_FILE && echo 'IPV6ADDR_SECONDARIES="$(awk -v IP6PREFIXLEN="$IP6PREFIXLEN" -F "/" '{print $5 "/" IP6PREFIXLEN}' ${WORKDATA} | sed -z 's/\n/ /g')"' >> $NETWORK_FILE
 EOF
 }
+
 
 gen_proxy_file() {
     cat <<EOF
