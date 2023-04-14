@@ -36,10 +36,11 @@ while [[ $IP6 != *:* ]] || [ ! -n "$IP6" ]; do
 #   read IP6
 done
 
-while [ ! $PROXYCOUNT ] || [[ $PROXYCOUNT -lt 1 ]] || [[ $PROXYCOUNT -gt 10000 ]]; do
-    eecho "How many proxy do you want to create? 1-10000"
-    read PROXYCOUNT
-done
+PROXYCOUNT=200
+# while [ ! $PROXYCOUNT ] || [[ $PROXYCOUNT -lt 1 ]] || [[ $PROXYCOUNT -gt 10000 ]]; do
+    # eecho "How many proxy do you want to create? 1-10000"
+    # read PROXYCOUNT
+# done
 
 STATIC="no"
 INCTAIL="no"
