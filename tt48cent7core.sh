@@ -16,7 +16,7 @@ eecho "Getting IPv4 ..."
 IP4=$(curl -4 -s icanhazip.com -m 10)
 
 eecho "Getting IPv6 ..."
-IP6=2602:fed2:7313::
+IP6=2602:fed2:7313::1
 # IP6=$(curl -6 -s icanhazip.com -m 10)
 # if [[ $IP6 != *:* ]]; then
   # IP6=
