@@ -15,6 +15,17 @@ sed -i '/bash ${WORKDIR}\/boot_ifconfig.sh/d' /etc/rc.local
 sed -i '/ulimit -n 65535/d' /etc/rc.local
 sed -i '/\/usr\/local\/etc\/3proxy\/bin\/3proxy \/usr\/local\/etc\/3proxy\/3proxy.cfg \&/d' /etc/rc.local
 
+# Xóa tất cả các quy tắc iptables
+iptables -F
+iptables -X
+iptables -t nat -F
+iptables -t nat -X
+iptables -t mangle -F
+iptables -t mangle -X
+iptables -P INPUT ACCEPT
+iptables -P FORWARD ACCEPT
+iptables -P OUTPUT ACCEPT
+
 random() {
 	tr </dev/urandom -dc A-Za-z0-9 | head -c5
 	echo
