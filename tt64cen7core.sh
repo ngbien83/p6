@@ -56,7 +56,7 @@ gen_data() {
 		echo "${array[$RANDOM % 16]}${array[$RANDOM % 16]}${array[$RANDOM % 16]}${array[$RANDOM % 16]}"
 	}
     seq $PROXYCOUNT | while read idx; do
-        port=$(($idx+20000))
+        port=$(($idx+23000))
         echo "$PROXYUSER/$PROXYPASS/$IP4/$port/$IP6PREFIX:$(ip64):$(ip64):$(ip64):$(ip64)"
     done
 }
