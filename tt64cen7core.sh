@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# centos 7.5
+# centos 7.0
 
 GREEN='\033[0;32m'
 ORANGE='\033[0;33m'
@@ -35,10 +35,11 @@ while [[ $IP6 != *:* ]] || [ ! -n "$IP6" ]; do
 #   read IP6
 done
 
-while [ ! $PROXYCOUNT ] || [[ $PROXYCOUNT -lt 1 ]] || [[ $PROXYCOUNT -gt 10000 ]]; do
-    eecho "How many proxy do you want to create? 1-10000"
-    read PROXYCOUNT
-done
+if [ $# -eq 0 ] || [ $1 -lt 1 ] || [ $1 -gt 10000 ]; then
+    eecho "Usage: $0 <number_of_proxies>"
+    exit 1
+fi
+PROXYCOUNT=$1
 
 STATIC="no"
 INCTAIL="no"
