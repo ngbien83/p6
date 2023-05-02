@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# centos 7.0
 
 GREEN='\033[0;32m'
 ORANGE='\033[0;33m'
@@ -18,20 +17,27 @@ if [ $# -eq 0 ] || [ $1 -lt 1 ] || [ $1 -gt 10000 ]; then
 fi
 PROXYCOUNT=$1
 
-STATIC="no"
-INCTAIL="no"
-INCTAILSTEPS=1
-IP6PREFIXLEN=64
-
 ETHNAME="eth0"
 PROXYUSER="yag"
 PROXYPASS="anhbiencong"
 
+clean_iptables() {
+    iptables -S | grep "dport 23000:" | sed 's/-A/-D/' | while read rule; do
+        iptables ${rule}
+    done
+}
+
+clean_ifconfig() {
+    grep -E "inet6.+${ETHNAME}$" /etc/sysconfig/network-scripts/ifcfg-${ETHNAME} | awk -F "/" '{print $1}' | while read line; do
+        ifconfig $line del
+    done
+}
+
 gen_data() {
     array=(1 2 3 4 5 6 7 8 9 0 a b c d e f)
     ip64() {
-		echo "${array[$RANDOM % 16]}${array[$RANDOM % 16]}${array[$RANDOM % 16]}${array[$RANDOM % 16]}"
-	}
+        echo "${array[$RANDOM % 16]}${array[$RANDOM % 16]}${array[$RANDOM % 16]}${array[$RANDOM % 16]}"
+    }
     seq $PROXYCOUNT | while read idx; do
         port=$(($idx+23000))
         echo "$PROXYUSER/$PROXYPASS/$IP4/$port/$IP6PREFIX:$(ip64):$(ip64):$(ip64):$(ip64)"
@@ -40,7 +46,7 @@ gen_data() {
 
 gen_iptables() {
     cat <<EOF
-$(awk -F "/" '{print "iptables -I INPUT -p tcp --dport " $4 "  -m state --state NEW -j ACCEPT"}' ${WORKDATA}) 
+$(awk -F "/" '{print "iptables -I INPUT -p tcp --dport " $4 "  -m state --state NEW -j ACCEPT"}' ${WORKDATA})
 EOF
 }
 
@@ -50,75 +56,20 @@ $(awk -v ETHNAME="$ETHNAME" -v IP6PREFIXLEN="$IP6PREFIXLEN" -F "/" '{print "ifco
 EOF
 }
 
-gen_static() {
-    NETWORK_FILE="/etc/sysconfig/network-scripts/ifcfg-$ETHNAME"
-    cat <<EOF
-    sed -i '/^IPV6ADDR_SECONDARIES/d' $NETWORK_FILE && echo 'IPV6ADDR_SECONDARIES="$(awk -v IP6PREFIXLEN="$IP6PREFIXLEN" -F "/" '{print $5 "/" IP6PREFIXLEN}' ${WORKDATA} | sed -z 's/\n/ /g')"' >> $NETWORK_FILE
-EOF
-}
+clean_iptables
+clean_ifconfig
 
-gen_proxy_file() {
-    cat <<EOF
-$(awk -F "/" '{print $3 ":" $4 ":" $1 ":" $2 }' ${WORKDATA})
-EOF
-}
+gen_data > data.txt
+gen_iptables > boot_iptables.sh
+gen_ifconfig > boot_ifconfig.sh
 
-update_proxies() {
-    WORKDIR="/usr/local/3proxy/installer"
-    WORKDATA="${WORKDIR}/data.txt"
-    mkdir -p $WORKDIR
-    eecho "Working folder = $WORKDIR"
+chmod +x boot_*.sh
 
-    gen_data >$WORKDATA
-    gen_iptables >$WORKDIR/boot_iptables.sh
-    gen_ifconfig >$WORKDIR/boot_ifconfig.sh
-    gen_static >$WORKDIR/boot_static.sh
-
-    BOOTRCFILE="$WORKDIR/boot_rc.sh"
-
-    REGISTER_LOGIC="systemctl restart network.service && bash ${WORKDIR}/boot_ifconfig.sh"
-    if [[ $STATIC == "yes" ]]; then
-        REGISTER_LOGIC="bash ${WORKDIR}/boot_static.sh && systemctl restart network.service"
-    fi
-
-    cat >$BOOTRCFILE <<EOF
-bash ${WORKDIR}/boot_iptables.sh
-${REGISTER_LOGIC}
+systemctl restart network.service && bash boot_ifconfig.sh
+bash boot_iptables.sh
 systemctl restart 3proxy
 
-# systemctl stop firewalld
-# systemctl disable firewalld
-# systemctl disable firewalld.service
-EOF
-    chmod +x ${WORKDIR}/boot_*.sh
+PROXYFILE=proxy.txt
+awk -F "/" '{print $3 ":" $4 ":" $1 ":" $2 }' data.txt > $PROXYFILE
 
-    grep -qxF '* soft nofile 1024000' /etc/security/limits.conf || cat >>/etc/security/limits.conf <<EOF 
-
-* soft nofile 1024000
-* hard nofile 1024000
-EOF
-
-    grep -qxF "bash $BOOTRCFILE" /etc/rc.local || cat >>/etc/rc.local <<EOF 
-bash $BOOTRCFILE
-EOF
-    chmod +x /etc/rc.local
-    bash /etc/rc.local
-
-    PROXYFILE=proxy.txt
-    gen_proxy_file >$PROXYFILE
-    eecho "Done with $PROXYFILE"
-
-    UPLOAD_RESULT=$(curl -sf --form "file=@$PROXYFILE" https://cloud.ytbpre.com/upload_proxy.php)
-    URL=$(echo "${UPLOAD_RESULT}" | awk '{print $1}')
-    RESPONSE=$(echo "${UPLOAD_RESULT}" | awk '{$1=""; print $0}')
-
-    eecho "Proxy is ready! Format IP:PORT:LOGIN:PASS"
-    eecho "Upload result:"
-    echo "${RESPONSE}"
-    eecho "Upload result URL:"
-    echo "${URL}"
-    eecho "Password: ${PROXYPASS}"
-}
-
-update_proxies
-
+eecho "Done with $PROXYFILE"
